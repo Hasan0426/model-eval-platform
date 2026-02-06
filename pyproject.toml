@@ -1,9 +1,11 @@
 [project]
 name = "model-eval-platform"
 version = "0.1.0"
+description = "A platform for ML model evaluation and error analysis"
+requires-python = ">=3.9"
 dependencies = [
-    "fastapi",
-    "uvicorn",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]",
     "pandas",
     "python-multipart",
     "celery",
@@ -12,15 +14,19 @@ dependencies = [
     "psycopg2-binary",
     "minio",
     "pydantic-settings",
-    "pytest",  # 新增：测试框架
-    "ruff"     # 新增：代码检查
+    "pytest",  # 测试依赖
+    "ruff"     # Lint 依赖
 ]
 
 [tool.ruff]
-# 代码检查工具配置
 line-length = 120
-select = ["E", "F", "I"] # 检查错误、格式、Import顺序
+select = ["E", "F", "I"]
 
-[tool.pytest.ini_options]
-pythonpath = "."
-testpaths = ["tests"]
+# --- 以下是新增的核心修复部分 ---
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["api", "worker", "core"]
