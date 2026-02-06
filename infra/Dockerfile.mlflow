@@ -1,0 +1,7 @@
+# infra/Dockerfile.mlflow
+
+# 基于官方镜像
+FROM ghcr.io/mlflow/mlflow:v2.7.1
+
+# 安装 Postgres 驱动
+RUN pip install psycopg2-binary

@@ -1,62 +1,48 @@
-from __future__ import annotations
+import io
+from minio import Minio
+from core.config import settings
 
-import json
-import os
-import uuid
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Dict, Optional
+# 初始化 MinIO 客户端
+minio_client = Minio(
+    settings.MINIO_ENDPOINT.replace("http://", "").replace("https://", ""),
+    access_key=settings.MINIO_ACCESS_KEY,
+    secret_key=settings.MINIO_SECRET_KEY,
+    secure=False # 开发环境通常是 HTTP
+)
 
-DATASETS_DIR = Path("data/datasets")
-METADATA_DIR = Path("data/metadata")
+def ensure_bucket_exists():
+    if not minio_client.bucket_exists(settings.MINIO_BUCKET_NAME):
+        minio_client.make_bucket(settings.MINIO_BUCKET_NAME)
 
+def upload_file(dataset_id: str, filename: str, data: bytes) -> str:
+    """
+    上传文件到 MinIO，返回对象路径 (Key)
+    """
+    ensure_bucket_exists()
+    
+    # 构造唯一的存储路径
+    object_name = f"{dataset_id}/{filename}"
+    
+    # 使用 BytesIO 包装二进制数据
+    data_stream = io.BytesIO(data)
+    
+    minio_client.put_object(
+        settings.MINIO_BUCKET_NAME,
+        object_name,
+        data_stream,
+        length=len(data),
+        content_type="text/csv"
+    )
+    
+    return object_name
 
-def ensure_dirs() -> None:
-    DATASETS_DIR.mkdir(parents=True, exist_ok=True)
-    METADATA_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def new_dataset_id() -> str:
-    # 统一用 uuid4，后面接 DB 也好迁移
-    return str(uuid.uuid4())
-
-
-def save_dataset_bytes(dataset_id: str, filename: str, content: bytes) -> Dict[str, Any]:
-    ensure_dirs()
-    # 只做 CSV（Day1），文件名标准化存储
-    raw_path = DATASETS_DIR / f"{dataset_id}__{filename}"
-    raw_path.write_bytes(content)
-
-    stat = raw_path.stat()
-    return {
-        "path": str(raw_path),
-        "bytes": int(stat.st_size),
-    }
-
-
-def save_metadata(dataset_id: str, meta: Dict[str, Any]) -> str:
-    ensure_dirs()
-    meta_path = METADATA_DIR / f"{dataset_id}.json"
-    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2))
-    return str(meta_path)
-
-
-def load_metadata(dataset_id: str) -> Optional[Dict[str, Any]]:
-    meta_path = METADATA_DIR / f"{dataset_id}.json"
-    if not meta_path.exists():
-        return None
-    return json.loads(meta_path.read_text())
-
-
-def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def list_datasets(limit: int = 50) -> Dict[str, Any]:
-    ensure_dirs()
-    items = []
-    for p in sorted(METADATA_DIR.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
-        items.append(p.stem)
-        if len(items) >= limit:
-            break
-    return {"dataset_ids": items}
+def download_file(object_name: str) -> io.BytesIO:
+    """
+    从 MinIO 下载文件到内存
+    """
+    response = minio_client.get_object(settings.MINIO_BUCKET_NAME, object_name)
+    try:
+        return io.BytesIO(response.read())
+    finally:
+        response.close()
+        response.release_conn()

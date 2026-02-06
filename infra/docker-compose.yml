@@ -47,6 +47,10 @@ services:
       - DATABASE_URL=postgresql://user:password@db:5432/model_eval_db
       - MINIO_ENDPOINT=minio:9000
       - REDIS_URL=redis://redis:6379/0
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
     depends_on:
       - db
       - minio
@@ -65,11 +69,37 @@ services:
       - DATABASE_URL=postgresql://user:password@db:5432/model_eval_db
       - MINIO_ENDPOINT=minio:9000
       - REDIS_URL=redis://redis:6379/0
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
     depends_on:
       - db
       - minio
       - redis
 
+  mlflow:
+    # image: ghcr.io/mlflow/mlflow:v2.7.1
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      # 让 MLflow 使用我们的 Postgres 存实验数据
+      - MLFLOW_BACKEND_STORE_URI=postgresql://user:password@db:5432/model_eval_db
+      # 让 MLflow 使用我们的 MinIO 存模型文件 (Artifacts)
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://user:password@db:5432/model_eval_db
+      --default-artifact-root s3://mlflow/
+      --host 0.0.0.0
+    depends_on:
+      - db
+      - minio
 volumes:
   postgres_data:
   minio_data:

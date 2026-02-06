@@ -15,7 +15,13 @@ dependencies = [
     "minio",
     "pydantic-settings",
     "pytest",  # 测试依赖
-    "ruff"     # Lint 依赖
+    "ruff",     # Lint 依赖
+    "mlflow==2.7.1",           # MLOps 核心
+    "xgboost", 
+    "torch",        # Baseline 模型
+    "scikit-learn",     # 数据切分与预处理
+    "boto3",            # MLflow 连接 MinIO 需要
+    "numpy"             # 数值计算
 ]
 
 [tool.ruff]
