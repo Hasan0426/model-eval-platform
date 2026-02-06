@@ -1,0 +1,26 @@
+[project]
+name = "model-eval-platform"
+version = "0.1.0"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pandas",
+    "python-multipart",
+    "celery",
+    "redis",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "minio",
+    "pydantic-settings",
+    "pytest",  # 新增：测试框架
+    "ruff"     # 新增：代码检查
+]
+
+[tool.ruff]
+# 代码检查工具配置
+line-length = 120
+select = ["E", "F", "I"] # 检查错误、格式、Import顺序
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = ["tests"]
